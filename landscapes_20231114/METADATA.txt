@@ -1,0 +1,49 @@
+
+gen3sis landscape
+
+Version: 
+1.0
+
+Author:
+Marcelo H. Schwade
+
+Date: 
+14.11.2023
+
+Spatial extent: 
+   Theoretical landscape. A square landscape with not habitable sites detemined 
+   by landscape cost. A landscape of 30x30 (900) sites. Latitude [0, -30], 
+   Longitude [-15, 15]
+
+Spatial resolution: 
+   1 gr (theoretical)
+
+Temporal extent: 
+   10000 timesteps (generations). This landscape is fixed at time.
+
+Temporal resolution: 
+   1 timestep ~ 1 generation (all original individuals in a site die at the next 
+   timestep, but it is determined by the ecological dynamics in config file of 
+   the gen3sis simulations, not by the landscape per se)
+
+Environmental variables: 
+   cond1;
+   cond2
+
+Cost function: 
+   cost_function_hab:
+           - 1 habitable site
+           - 2 not habitable site
+
+Source Data: 
+   Fictional data generated using `script_to_run_create_simple_landscape2.R` and
+   the landscape cost file `landscape_cost.txt`
+
+Publications: 
+
+Description: 
+    This landscape was originally named simple_landscape_20231114 and used to 
+    simulate data for test the ADA method for ancestor area reconstruction.
+    The not habitable sites are determined by the user to form a set of 3 extent
+    barriers across the landscape.
+
