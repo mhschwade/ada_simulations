@@ -51,7 +51,6 @@ trait_names = c("cond1", "cond2")
 # listed, set to NA:           the environmental variable will be scaled from [min, max] to [0, 1]
 # listed with a given range r: the environmental variable will be scaled from [r1, r2] to [0, 1]
 environmental_ranges = list("cond1"=NA, "cond2"=NA) 
-# Ex.: "temp"=c(18, 35) # It doesn't scale the variable.
 
 # Parameters to change.
 dispersal_rate <- 0.5
@@ -59,14 +58,12 @@ dispersal_rate <- 0.5
 niche_var2 <- 2*(0.05^2) #niche_breath
 trait_variability <- 0.01 # Proportion of the gradient.
 # Delta - Rate of mixing of the traits within the cluster.
-delta <- 1 # Total mixing (original proposal of Hagen et al. 2021)
+delta <- 1 # Populations totally mixed into each cluster (original proposal of Hagen et al. 2021)
 # Initial distribution of the ancestor species.
 range_initial <- c(-5, 0, -5, 0) # longmin, longmax, latmin, latmax.
 
 # Control parameters of timestep_observer.
 observation_interval <- 10
-#speciation_control <- 1
-  
 
 # Import/compile Rcpp functions (to ecology dynamics).
 # Function: lotka_volterra_comp()
@@ -85,11 +82,9 @@ end_of_timestep_observer = function(data, vars, config){
   
   # Verify speciation.
   speciation_event <- vars$n_new_sp_ti > 0
-  #cat(length(data$all_species), vars$n_new_sp_ti, "\n")
-  
 
   ##############################################################################
-  # Save the species data at each 10 timesteps and when time.
+  # Save the species data at each 10 timesteps and when speciations happen.
   if((vars$ti%%config$user$observation_interval==0) | speciation_event){
     
     # Save data of the species.
@@ -120,8 +115,6 @@ end_of_timestep_observer = function(data, vars, config){
     # Plot species 1 distribution.
     plot_species_presence(data$all_species[[1]], data$landscape)
     
-    #cat("Save data.\n")
-
   }
   
   mtext("STATUS", 1)
@@ -180,12 +173,8 @@ max_dispersal <- 6.907755*dispersal_rate # Cutting radius.
 
 # returns n dispersal values.
 get_dispersal_values <- function(n, species, landscape, config) {
-  # stop("calculate dispersal values here")
   # Generate values of dispersal.
-  # Deterministic dispersal.
-  # values <- sample(c(1,2), n, replace=T)
-  # Stochastic dispersal using a Weibull distribution.
-  #values <- rweibull(n, shape = 2, scale = 1) # 50 degrees by 50 sites, 1 degree by site.
+  # Probabilistic dispersal using a dispersal kernel exponential.
   values <- rexp(n, rate=(1/config$user$dispersal_rate)) # is this a proper rate?
   
   return(values)
@@ -265,6 +254,33 @@ apply_evolution <- function(species, cluster_indices, landscape, config) {
 ###             Ecology            ###
 ######################################
 
+##############################################################################
+# Define the parameters of Lotka-Volterra competition model (simplified).
+
+bmax <- 3 # Maximum birth intrinsic rate.
+# rmax is the maximum fundamental increment rate.
+# rmax = bmax - 1 = 5 - 1 = 4 (all individuals dead after a generation time, 
+# time-step)
+
+Kr <- 500 # Species-local carrying capacity per recruitment. # Modification from config2_cpp.
+# The maximum carrying capacity Kmax is
+# Kmax = rmax*Kr
+# Here, Kmax = (bmax-1)*Kr =(3-1)*1000 = 2*1000 = 2000
+
+alpha <- 1 # Interespecific competition rate,
+# Alpha equal to 1 represent an identical intra and inter specific competition.
+
+# Environmental tolerance of species.
+sigma2_cond1 <- config$user$niche_var2 # 2*sigma^2
+sigma2_cond2 <- config$user$niche_var2 # 2*sigma^2
+
+# Define abundance threshold.
+abundance_threshold <- 1 # When abundance is lesser than 1 the population is extinct.
+
+# Put all the parameters in a vector - please, the order should be respected.
+lvc_pars <- c(bmax, Kr, alpha)
+
+
 # called for every cell with all occurring species, this function calculates abundances and/or 
 # who survives for each sites.
 # returns a vector of abundances.
@@ -286,50 +302,23 @@ apply_ecology <- function(abundance, traits, environment, config) {
   # rate.
   
   ##############################################################################
-  # Define the parameters of Lotka-Volterra competition model (simplified).
-  
-  bmax <- 3 # Maximum birth intrinsic rate.
-  # rmax is the maximum fundamental increment rate.
-  # rmax = bmax - 1 = 5 - 1 = 4 (all individuals dead after a generation time, 
-  # time-step)
-  
-  Kr <- 500 # Species-local carrying capacity per recruitment. # Modification from config2_cpp.
-  # The maximum carrying capacity Kmax is
-  # Kmax = rmax*Kr
-  # Here, Kmax = (3-1)*1000 = 2*1000 = 2000
-  
-  alpha <- 1 # Interespecific competition rate,
-  # Alpha equal to 1 represent an identical intra and inter specific competition.
-  
-  # Environmental tolerance of species.
-  sigma2_cond1 <- config$user$niche_var2 # 2*sigma^2 # sigma = 4/100
-  sigma2_cond2 <- config$user$niche_var2 # 2*sigma^2
-  
-  # Define abundance threshold.
-  abundance_threshold <- 1
-  
-  # Put all the parameters in a vector - please, the order should be respected.
-  pars <- c(bmax, Kr, alpha)
-
-  ##############################################################################
   # Extinguish the species with abundance below the threshold.
   
   # Extinguish the populations with abundance below the threshold.
-  abundance[abundance < abundance_threshold] <- 0
+  abundance[abundance < config$user$abundance_threshold] <- 0
   
-  # Apply a Lotka-Volterra Competition Model (modified to include niche).
-  #sink("saida.txt")
-  #cat(abundance, class(abundance), "\n")
-  #cat(traits, class(traits), "\n")
-  #sink()
-
-  abundance <- config$user$lotka_volterra_comp_neutral2(abundance, pars, dt=0.01, times=1)
+  # Apply a Lotka-Volterra Competition Model (LVC Model, modified to include niche).
+  # Here, in this config file (config6_cpp), we use a neutral version of LVC model. So, 
+  # the environment and the environmental tolerances (sigmas) aren't passed as 
+  # argument.
+  # The function to integrate LVC model was coding in C++ using Rcpp.
+  abundance <- config$user$lotka_volterra_comp_neutral2(abundance, config$user$lvc_pars, dt=0.01, times=1)
   
   # Apply drift using Poisson distribution with mean equal to deterministic abundance.
   # abundance <- rpois(n=length(abundance), lambda=abundance)
   
   # Apply abundance threshold to the updated populations.
-  abundance[abundance < abundance_threshold] <- 0
+  abundance[abundance < config$user$abundance_threshold] <- 0
   
   # Return the final abundance.
   return(abundance)

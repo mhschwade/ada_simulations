@@ -17,7 +17,7 @@
 # config/config6_cpp.R
 
 # Landscape:
-# simple_landscapes_20231114/simple_landscapes_20231114.rds
+# landscapes_20231114/landscapes/simple_landscapes_20231114.rds
 
 # Description:
 # Simulation to generate data to test species ancestral range reconstruction.
@@ -51,22 +51,23 @@ verify_config(config_object)
 # If this verification returns TRUE it is good to go.
 
 # Defining other basic paths.
-landscape_path <- file.path(simulation_path, "simple_landscapes_20231114", "landscapes", "distances")
+landscape_path <- file.path(simulation_path, "landscapes_20231114", "landscapes", "distances")
 output_directory <- file.path(simulation_path, "neutral_simulations")
 
 ################################################################################
-# Function to run in parallel.
+# Function to run simulations using a set of parameters.
 # Function to run gen3sis changing the random seed.
 runGen3sisSim <- function(config_file, landscape_path, output_directory, par, save_state=NA, verbose=T){
   
   config <- create_input_config(config_file)
   
-  config$gen3sis$general$random_seed <- par$rseed
-  config$user$trait_variability <- par$trait_variability
-  config$user$dispersal_rate <- par$dispersal_rate
-  config$user$delta <- 1 # Total mixed.
-  config$user$niche_var2 <- 2*(par$niche_breath^2)
-  config$user$range_initial <- par$range_initial
+  config$gen3sis$general$random_seed <- par$rseed # Random seed of the simulation.
+  config$user$trait_variability <- par$trait_variability # Trait variability.
+  config$user$dispersal_rate <- par$dispersal_rate # Dispersal rate.
+  config$user$delta <- 1 # Rate of mixture of the traits of the populations into a cluster.
+  # For delta=1 the trait values of the populations are totally mixed into each cluster.
+  config$user$niche_var2 <- 2*(par$niche_breath^2) # Environmental tolerance of the species. 
+  config$user$range_initial <- par$range_initial # Initial range of distribution of the ancestor species.
   
   # Print the parameters of the simulation in the log file.
   #textlog <- paste(Sys.time(), par$niche_breath, par$dispersal_rate, par$trait_variability, par$rseed, par$range_initial[1], par$range_initial[2], par$range_initial[3], par$range_initial[4], sep='\t')
@@ -80,7 +81,7 @@ runGen3sisSim <- function(config_file, landscape_path, output_directory, par, sa
                                        output_directory=output_directory, save_state=save_state, verbose=verbose)
   time_end <- Sys.time()
   
-  #print(paste(paste("Simulation with seed =", pars$rseed), "finished."))
+  print(paste(paste("Simulation with seed =", pars$rseed), "finished."))
   print(time_end - time_start)
   return(simulation_results)
 }
@@ -94,11 +95,6 @@ runGen3sisSim <- function(config_file, landscape_path, output_directory, par, sa
 
 # Defining parameters to simulation.
 # Random seeds.
-#rseeds <- as.integer(runif(10, min=0, max=1000000))
-#rseeds <- c(819510, 220842, 997456) 
-#rseeds <- as.integer(runif(90, min=0, max=1000000))
-#cat(rseeds)
-# 
 rseeds <- c(344062, 953111, 329969, 575612, 364862)
 
 range_initial <- list(c(-5, 0, -5, 0), 
@@ -113,7 +109,8 @@ dispersal_rates <- c(0.6)
 niche_breaths <- c(0.05)
 trait_variability <- 0.01
 
-# List of parameters.
+# Put all set of parameters into a list. Each set of parameters (element of the 
+# list) is used to run a simulation.
 pars <- list()
 nsim <- 0
 for(rseed in rseeds){
@@ -144,6 +141,7 @@ no_cores <- 12 # For Monolito.
 cl <- makeCluster(no_cores)
 registerDoParallel(cl)
 
+# Run the simulations in parallel. Each simulation run in a core.
 foreach(i=2:nsim, .packages=c('gen3sis', 'raster', 'Rcpp')) %dopar% {
   runGen3sisSim(config_file, landscape_path, output_directory, pars[[i]], verbose=F)
 }
