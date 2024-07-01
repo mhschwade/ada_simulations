@@ -1,0 +1,21 @@
+# Instruções para rodar as simulações neutras do gen3sis.
+
+1) Gerar as paisagens:
+    1.1) Ajustar os nomes dos diretórios no script `script_to_run_create_simple_landscape2.R`:
+      > simulation_path;
+    1.2) Executar script `script_to_run_create_simple_landscape2.R`;
+    
+2) Rodar as simulaçoes:
+    2.1) Ajustar nomes e endereços dos diretórios de entrada e saída de dados
+    no script `run_neutral_simulations.R`:
+      > Inputs: 
+                config_file = caminho para o arquivo de configurações ('config/config6_cpp.R'),
+                landscape_path = diretório onde foi salva a paisagem;
+      > Outputs: 
+                output_directory = diretório onde serão salvas as simulações;
+    2.2) Ajustar o número de cores a serem usados para rodar as simulações (no_cores);
+    2.3) Executar o script `run_neutral_simulations.R`;
+    
+3) Checar resultados:
+    3.1) Os resultados parciais gerados pelas simulações podem ser acompanhados em tempo real no diretório de saída dos dados;
+    3.2) Uma primeira simulação é rodada pelo script antes de iniciar a execução das demais simulações em paralelo, com isso se pode ter uma primeira ideia dos resultados que serão produzidos.
