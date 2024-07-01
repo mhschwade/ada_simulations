@@ -314,9 +314,6 @@ apply_ecology <- function(abundance, traits, environment, config) {
   # The function to integrate LVC model was coding in C++ using Rcpp.
   abundance <- config$user$lotka_volterra_comp_neutral2(abundance, config$user$lvc_pars, dt=0.01, times=1)
   
-  # Apply drift using Poisson distribution with mean equal to deterministic abundance.
-  abundance <- rpois(n=length(abundance), lambda=abundance)
-  
   # Apply abundance threshold to the updated populations.
   abundance[abundance < config$user$abundance_threshold] <- 0
   
