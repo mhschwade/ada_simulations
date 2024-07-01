@@ -106,7 +106,7 @@ range_initial <- list(c(-5, 0, -5, 0),
 names(range_initial) <- c("A", "B", "C", "D", "E")
 
 dispersal_rates <- c(0.6)
-niche_breaths <- c(0.05)
+niche_breaths <- c(0.05) # This parameter is not in use for neutral dynamics.
 trait_variability <- 0.01
 
 # Put all set of parameters into a list. Each set of parameters (element of the 
@@ -131,7 +131,7 @@ for(rseed in rseeds){
 
 
 # Run one simulation to test if the script is working.
-runGen3sisSim(config_file, landscape_path, output_directory, pars[[1]], save_state=NA)
+sim.results <- runGen3sisSim(config_file, landscape_path, output_directory, pars[[1]], save_state=NA)
 
 
 # Run all the missing simulations using parallelization.

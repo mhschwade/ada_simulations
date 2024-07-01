@@ -63,7 +63,7 @@ delta <- 1 # Populations totally mixed into each cluster (original proposal of H
 range_initial <- c(-5, 0, -5, 0) # longmin, longmax, latmin, latmax.
 
 # Control parameters of timestep_observer.
-observation_interval <- 10
+observation_interval <- 1
 
 # Import/compile Rcpp functions (to ecology dynamics).
 # Function: lotka_volterra_comp()
@@ -315,7 +315,7 @@ apply_ecology <- function(abundance, traits, environment, config) {
   abundance <- config$user$lotka_volterra_comp_neutral2(abundance, config$user$lvc_pars, dt=0.01, times=1)
   
   # Apply drift using Poisson distribution with mean equal to deterministic abundance.
-  # abundance <- rpois(n=length(abundance), lambda=abundance)
+  abundance <- rpois(n=length(abundance), lambda=abundance)
   
   # Apply abundance threshold to the updated populations.
   abundance[abundance < config$user$abundance_threshold] <- 0
